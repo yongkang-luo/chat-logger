@@ -1,0 +1,82 @@
+{
+  "name": "cursor-chat-logger",
+  "displayName": "Cursor Chat Logger",
+  "description": "Forward Cursor LLM chat logs to your self-hosted HTTP server. Cursor-only (requires Hooks). Disabled by default.",
+  "version": "0.1.2",
+  "publisher": "yongkang-luo",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cursor",
+    "chat",
+    "logger",
+    "hooks",
+    "llm",
+    "agent"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Cursor Chat Logger",
+      "properties": {
+        "cursorChatLogger.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否启用对话日志转发"
+        },
+        "cursorChatLogger.serverHost": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "接收服务的 IP 地址"
+        },
+        "cursorChatLogger.serverPort": {
+          "type": "number",
+          "default": 8080,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "接收服务的端口"
+        },
+        "cursorChatLogger.endpoint": {
+          "type": "string",
+          "default": "/api/chat-log",
+          "description": "HTTP POST 路径"
+        },
+        "cursorChatLogger.includeThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否同时转发 Agent 思考过程 (afterAgentThought)"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "cursorChatLogger.toggle",
+        "title": "Cursor Chat Logger: Toggle"
+      },
+      {
+        "command": "cursorChatLogger.enable",
+        "title": "Cursor Chat Logger: Enable"
+      },
+      {
+        "command": "cursorChatLogger.disable",
+        "title": "Cursor Chat Logger: Disable"
+      },
+      {
+        "command": "cursorChatLogger.testConnection",
+        "title": "Cursor Chat Logger: Test Connection"
+      },
+      {
+        "command": "cursorChatLogger.reinstallHooks",
+        "title": "Cursor Chat Logger: Reinstall Hooks"
+      }
+    ]
+  }
+}

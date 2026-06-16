@@ -1,0 +1,88 @@
+{
+  "name": "vscode-chat-logger",
+  "displayName": "VS Code Chat Logger",
+  "description": "Forward VS Code Copilot Agent chat logs to your self-hosted HTTP server via Copilot Hooks. Disabled by default.",
+  "version": "0.1.0",
+  "publisher": "yongkang-luo",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "vscode",
+    "copilot",
+    "chat",
+    "logger",
+    "hooks",
+    "llm",
+    "agent"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "VS Code Chat Logger",
+      "properties": {
+        "vscodeChatLogger.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否启用对话日志转发"
+        },
+        "vscodeChatLogger.serverHost": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "接收服务的 IP 地址"
+        },
+        "vscodeChatLogger.serverPort": {
+          "type": "number",
+          "default": 8080,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "接收服务的端口"
+        },
+        "vscodeChatLogger.endpoint": {
+          "type": "string",
+          "default": "/api/chat-log",
+          "description": "HTTP POST 路径"
+        },
+        "vscodeChatLogger.includeToolUse": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否转发 PostToolUse 工具调用事件"
+        },
+        "vscodeChatLogger.includeTranscriptOnStop": {
+          "type": "boolean",
+          "default": true,
+          "description": "Stop 时是否附带会话 transcript 文件内容"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "vscodeChatLogger.toggle",
+        "title": "VS Code Chat Logger: Toggle"
+      },
+      {
+        "command": "vscodeChatLogger.enable",
+        "title": "VS Code Chat Logger: Enable"
+      },
+      {
+        "command": "vscodeChatLogger.disable",
+        "title": "VS Code Chat Logger: Disable"
+      },
+      {
+        "command": "vscodeChatLogger.testConnection",
+        "title": "VS Code Chat Logger: Test Connection"
+      },
+      {
+        "command": "vscodeChatLogger.reinstallHooks",
+        "title": "VS Code Chat Logger: Reinstall Hooks"
+      }
+    ]
+  }
+}

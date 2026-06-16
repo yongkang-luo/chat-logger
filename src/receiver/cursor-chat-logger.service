@@ -1,0 +1,16 @@
+[Unit]
+Description=Cursor Chat Logger Receiver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/data/yongkangluo/chat-logger/src/receiver
+ExecStart=/usr/bin/python3 /data/yongkangluo/chat-logger/src/receiver/server.py --host 0.0.0.0 --port 8080 --output-dir /data/yongkangluo/chat_logs
+Restart=always
+RestartSec=5
+StandardOutput=append:/data/yongkangluo/chat_logs/server.log
+StandardError=append:/data/yongkangluo/chat_logs/server.log
+
+[Install]
+WantedBy=multi-user.target

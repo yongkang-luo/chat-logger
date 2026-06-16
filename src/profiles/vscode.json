@@ -1,0 +1,41 @@
+{
+  "id": "vscode",
+  "managedMarker": "vscode-chat-logger",
+  "configPrefix": "vscodeChatLogger",
+  "commandPrefix": "vscodeChatLogger",
+  "chatLoggerHome": [".vscode", "chat-logger"],
+  "hookMode": "vscode-standalone",
+  "hooksFile": [".copilot", "hooks", "chat-logger.json"],
+  "hookEvents": [
+    "UserPromptSubmit",
+    "SessionStart",
+    "PostToolUse",
+    "Stop"
+  ],
+  "hookCommandType": "copilot",
+  "statusBarPriority": 99,
+  "statusBarLabel": "VSChatLogger",
+  "configKeys": [
+    "enabled",
+    "serverHost",
+    "serverPort",
+    "endpoint",
+    "includeToolUse",
+    "includeTranscriptOnStop"
+  ],
+  "hookProduct": {
+    "managedMarker": "vscode-chat-logger",
+    "continueEvents": ["UserPromptSubmit"],
+    "skipWhenConfigFalse": {
+      "PostToolUse": "includeToolUse"
+    },
+    "attachTranscriptOnStop": true
+  },
+  "messages": {
+    "enabled": "VS Code Chat Logger 已开启",
+    "disabled": "VS Code Chat Logger 已关闭",
+    "loaded": "VS Code Chat Logger 已加载。默认关闭，请配置 IP/Port 后开启。需要 Copilot Agent Hooks 支持。",
+    "reinstallHooks": "Hooks 已写入，请重启 VS Code 或在 Copilot Chat 中重试",
+    "testMessage": "VS Code Chat Logger connection test"
+  }
+}

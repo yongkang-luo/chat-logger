@@ -1,0 +1,40 @@
+{
+  "id": "cursor",
+  "managedMarker": "cursor-chat-logger",
+  "configPrefix": "cursorChatLogger",
+  "commandPrefix": "cursorChatLogger",
+  "chatLoggerHome": [".cursor", "chat-logger"],
+  "hookMode": "cursor-merge",
+  "hooksFile": [".cursor", "hooks.json"],
+  "hookEvents": [
+    "beforeSubmitPrompt",
+    "afterAgentResponse",
+    "afterAgentThought",
+    "stop"
+  ],
+  "hookCommandType": "plain",
+  "statusBarPriority": 100,
+  "statusBarLabel": "ChatLogger",
+  "configKeys": [
+    "enabled",
+    "serverHost",
+    "serverPort",
+    "endpoint",
+    "includeThinking"
+  ],
+  "hookProduct": {
+    "managedMarker": "cursor-chat-logger",
+    "continueEvents": ["beforeSubmitPrompt"],
+    "skipWhenConfigFalse": {
+      "afterAgentThought": "includeThinking"
+    },
+    "attachTranscriptOnStop": false
+  },
+  "messages": {
+    "enabled": "Cursor Chat Logger 已开启",
+    "disabled": "Cursor Chat Logger 已关闭",
+    "loaded": "Cursor Chat Logger 已加载。默认关闭，请在设置中配置 IP/Port 后开启。",
+    "reinstallHooks": "Hooks 已重新安装，请重启 Cursor 或检查 Settings -> Hooks",
+    "testMessage": "Cursor Chat Logger connection test"
+  }
+}
