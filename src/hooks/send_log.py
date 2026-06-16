@@ -4,6 +4,7 @@
 import datetime
 import json
 import os
+import sqlite3
 import sys
 import urllib.error
 import urllib.request
@@ -78,12 +79,107 @@ def _should_skip(event, product, config):
     return not config.get(config_key, False)
 
 
-def _build_payload(marker, event, hook_input):
+def _state_vscdb_path(ide_id):
+    home = os.path.expanduser("~")
+    if sys.platform == "darwin":
+        app_name = "Cursor" if ide_id == "cursor" else "Code"
+        base = os.path.join(home, "Library", "Application Support", app_name)
+    elif sys.platform == "win32":
+        appdata = os.environ.get("APPDATA", os.path.join(home, "AppData", "Roaming"))
+        app_name = "Cursor" if ide_id == "cursor" else "Code"
+        base = os.path.join(appdata, app_name)
+    else:
+        app_name = "Cursor" if ide_id == "cursor" else "Code"
+        base = os.path.join(home, ".config", app_name)
+    return os.path.join(base, "User", "globalStorage", "state.vscdb")
+
+
+_CURSOR_DB_KEYS = {
+    "cursorAuth/cachedEmail": "email",
+    "cursorAuth/stripeMembershipType": "membership_type",
+}
+
+
+def _read_ide_user_from_vscdb(ide_id):
+    db_path = _state_vscdb_path(ide_id)
+    if not os.path.isfile(db_path):
+        return {}
+
+    key_map = _CURSOR_DB_KEYS if ide_id == "cursor" else {}
+    if not key_map:
+        return {}
+
+    tags = {}
+    try:
+        conn = sqlite3.connect("file:{0}?mode=ro".format(db_path), uri=True)
+        try:
+            for db_key, tag_key in key_map.items():
+                row = conn.execute(
+                    "SELECT value FROM ItemTable WHERE key = ?",
+                    (db_key,),
+                ).fetchone()
+                if row and row[0]:
+                    tags[tag_key] = row[0]
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError):
+        pass
+    return tags
+
+
+def _merge_tag(tags, key, value):
+    if value is None:
+        return
+    text = str(value).strip()
+    if text:
+        tags[key] = text
+
+
+def _get_ide_user_tags(hook_input, config, product):
+    """采集 Cursor / VS Code 登录用户标识，作为 tags 附带上报。"""
+    tags = {}
+    ide_id = str(product.get("ideId") or "cursor")
+
+    _merge_tag(tags, "email", hook_input.get("user_email"))
+
+    if hook_input.get("cursor_version"):
+        tags["ide"] = "cursor"
+        tags["ide_version"] = hook_input["cursor_version"]
+    elif hook_input.get("vscode_version"):
+        tags["ide"] = "vscode"
+        tags["ide_version"] = hook_input["vscode_version"]
+
+    ide_user = config.get("ideUser") or {}
+    if isinstance(ide_user, dict):
+        for key in ("email", "ide", "ide_version", "membership_type", "auth_provider", "account_id"):
+            if key not in tags:
+                _merge_tag(tags, key, ide_user.get(key))
+
+    if "email" not in tags or "membership_type" not in tags:
+        for key, value in _read_ide_user_from_vscdb(ide_id).items():
+            if key not in tags:
+                tags[key] = value
+
+    if "ide" not in tags:
+        tags["ide"] = ide_id
+
+    session_id = hook_input.get("session_id") or hook_input.get("sessionId")
+    _merge_tag(tags, "session_id", session_id)
+
+    workspace_roots = hook_input.get("workspace_roots")
+    if isinstance(workspace_roots, list) and workspace_roots:
+        _merge_tag(tags, "workspace", workspace_roots[0])
+
+    return tags
+
+
+def _build_payload(marker, event, hook_input, config, product):
     return {
         "source": marker,
         "event": event,
         "timestamp": datetime.datetime.utcnow().isoformat(timespec="milliseconds") + "Z",
         "hook_event_name": hook_input.get("hook_event_name", event),
+        "tags": _get_ide_user_tags(hook_input, config, product),
         "data": hook_input,
     }
 
@@ -130,7 +226,7 @@ def main():
     marker = product.get("managedMarker", "chat-logger")
     if config.get("enabled", False):
         try:
-            _post_payload(config, _build_payload(marker, event, hook_input), log_path)
+            _post_payload(config, _build_payload(marker, event, hook_input, config, product), log_path)
         except (urllib.error.URLError, TimeoutError, ValueError) as exc:
             _log(log_path, "send failed ({0}): {1}".format(event, exc))
 

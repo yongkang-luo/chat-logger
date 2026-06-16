@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const http = require("http");
+const { execFileSync } = require("child_process");
 
 const HOOK_SCRIPT_NAME = "send_log.py";
 
@@ -68,9 +69,101 @@ function createExtension(profile) {
     return values;
   }
 
-  function syncRuntimeConfig() {
+  function getStateVscdbPath(ideId) {
+    const home = os.homedir();
+    const appName = ideId === "cursor" ? "Cursor" : "Code";
+
+    if (process.platform === "darwin") {
+      return path.join(home, "Library", "Application Support", appName, "User", "globalStorage", "state.vscdb");
+    }
+    if (process.platform === "win32") {
+      const appData = process.env.APPDATA || path.join(home, "AppData", "Roaming");
+      return path.join(appData, appName, "User", "globalStorage", "state.vscdb");
+    }
+    return path.join(home, ".config", appName, "User", "globalStorage", "state.vscdb");
+  }
+
+  function readIdeUserFromVscdb(ideId) {
+    const dbPath = getStateVscdbPath(ideId);
+    if (!fs.existsSync(dbPath)) {
+      return {};
+    }
+
+    const keyMap =
+      ideId === "cursor"
+        ? {
+            "cursorAuth/cachedEmail": "email",
+            "cursorAuth/stripeMembershipType": "membership_type",
+          }
+        : {};
+
+    if (!Object.keys(keyMap).length) {
+      return {};
+    }
+
+    /** @type {Record<string, string>} */
+    const result = {};
+    try {
+      for (const [dbKey, tagKey] of Object.entries(keyMap)) {
+        const output = execFileSync(
+          "sqlite3",
+          [dbPath, "SELECT value FROM ItemTable WHERE key = ?;", dbKey],
+          { encoding: "utf8", timeout: 3000 }
+        ).trim();
+        if (output) {
+          result[tagKey] = output;
+        }
+      }
+    } catch {
+      // sqlite3 不可用或数据库被锁时忽略
+    }
+    return result;
+  }
+
+  async function resolveIdeUser() {
+    const ideId = String(profile.id || "unknown");
+    /** @type {Record<string, string>} */
+    const ideUser = { ide: ideId };
+
+    try {
+      ideUser.ide_version = vscode.version;
+    } catch {
+      // ignore
+    }
+
+    const authProviders = ideId === "cursor" ? ["github", "cursor", "microsoft"] : ["github", "microsoft"];
+    for (const provider of authProviders) {
+      try {
+        const session = await vscode.authentication.getSession(provider, [], { silent: true });
+        if (session && session.account) {
+          if (!ideUser.email) {
+            ideUser.email = session.account.label || session.account.id;
+          }
+          ideUser.auth_provider = provider;
+          ideUser.account_id = session.account.id;
+          break;
+        }
+      } catch {
+        // 未登录或 provider 不存在
+      }
+    }
+
+    const fromDb = readIdeUserFromVscdb(ideId);
+    if (fromDb.email && !ideUser.email) {
+      ideUser.email = fromDb.email;
+    }
+    if (fromDb.membership_type) {
+      ideUser.membership_type = fromDb.membership_type;
+    }
+
+    return ideUser;
+  }
+
+  async function syncRuntimeConfig() {
     fs.mkdirSync(chatLoggerDir, { recursive: true });
-    fs.writeFileSync(configPath, JSON.stringify(getConfigValues(), null, 2), "utf8");
+    const values = getConfigValues();
+    values.ideUser = await resolveIdeUser();
+    fs.writeFileSync(configPath, JSON.stringify(values, null, 2), "utf8");
     fs.writeFileSync(productPath, JSON.stringify(hookProduct, null, 2), "utf8");
   }
 
@@ -177,7 +270,7 @@ function createExtension(profile) {
   async function setEnabled(enabled) {
     const cfg = vscode.workspace.getConfiguration(configPrefix);
     await cfg.update("enabled", enabled, vscode.ConfigurationTarget.Global);
-    syncRuntimeConfig();
+    await syncRuntimeConfig();
     updateStatusBar();
     notify(enabled ? messages.enabled : messages.disabled);
   }
@@ -236,18 +329,17 @@ function createExtension(profile) {
   function activate(context) {
     installHookScript(context);
     installHooks();
-    syncRuntimeConfig();
 
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, statusBarPriority);
     statusBarItem.command = `${commandPrefix}.toggle`;
     statusBarItem.show();
 
-    const refresh = () => {
-      syncRuntimeConfig();
+    const refresh = async () => {
+      await syncRuntimeConfig();
       updateStatusBar();
     };
 
-    refresh();
+    void refresh();
 
     const reinstallMessage =
       hookMode === "cursor-merge"
@@ -258,7 +350,7 @@ function createExtension(profile) {
       statusBarItem,
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration(configPrefix)) {
-          refresh();
+          void refresh();
         }
       }),
       vscode.commands.registerCommand(`${commandPrefix}.toggle`, async () => {
@@ -277,8 +369,9 @@ function createExtension(profile) {
       vscode.commands.registerCommand(`${commandPrefix}.reinstallHooks`, () => {
         installHookScript(context);
         installHooks();
-        syncRuntimeConfig();
-        notify(reinstallMessage);
+        void refresh().then(() => {
+          notify(reinstallMessage);
+        });
       })
     );
 

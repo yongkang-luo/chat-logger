@@ -23,6 +23,7 @@
     "includeThinking"
   ],
   "hookProduct": {
+    "ideId": "cursor",
     "managedMarker": "cursor-chat-logger",
     "continueEvents": ["beforeSubmitPrompt"],
     "skipWhenConfigFalse": {

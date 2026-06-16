@@ -24,6 +24,7 @@
     "includeTranscriptOnStop"
   ],
   "hookProduct": {
+    "ideId": "vscode",
     "managedMarker": "vscode-chat-logger",
     "continueEvents": ["UserPromptSubmit"],
     "skipWhenConfigFalse": {
