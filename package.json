@@ -1,0 +1,23 @@
+{
+  "name": "chat-logger-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cursor & VS Code chat logger extensions monorepo",
+  "scripts": {
+    "sync": "bash scripts/sync.sh all",
+    "sync:cursor": "bash scripts/sync.sh cursor",
+    "sync:vscode": "bash scripts/sync.sh vscode",
+    "package": "bash scripts/package.sh all",
+    "package:cursor": "bash scripts/package.sh cursor",
+    "package:vscode": "bash scripts/package.sh vscode",
+    "publish:ovsx": "bash scripts/publish.sh all",
+    "publish:ovsx:cursor": "bash scripts/publish.sh cursor",
+    "publish:ovsx:vscode": "bash scripts/publish.sh vscode",
+    "install:cursor": "bash scripts/install-local.sh cursor",
+    "install:vscode": "bash scripts/install-local.sh vscode"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.1",
+    "ovsx": "^0.10.2"
+  }
+}

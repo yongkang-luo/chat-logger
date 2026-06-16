@@ -61,7 +61,11 @@ function createExtension(profile) {
       } else if (key === "endpoint") {
         values[key] = cfg.get(key, "/api/chat-log");
       } else if (key === "includeThinking" || key === "includeToolUse" || key === "includeTranscriptOnStop") {
-        values[key] = cfg.get(key, key !== "includeThinking");
+        if (key === "includeThinking") {
+          values[key] = cfg.get(key, true);
+        } else {
+          values[key] = cfg.get(key, key !== "includeThinking");
+        }
       } else {
         values[key] = cfg.get(key);
       }

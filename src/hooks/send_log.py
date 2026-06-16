@@ -59,8 +59,8 @@ def _maybe_attach_transcript(data, product, config):
     try:
         with open(transcript_path, encoding="utf-8", errors="replace") as f:
             content = f.read()
-        max_len = 500000
-        if len(content) > max_len:
+        max_len = int(config.get("maxTranscriptChars") or 0)
+        if max_len > 0 and len(content) > max_len:
             content = content[:max_len] + "\n...[truncated]"
         data = dict(data)
         data["transcript"] = content
@@ -76,7 +76,8 @@ def _should_skip(event, product, config):
     config_key = skip_map.get(event)
     if not config_key:
         return False
-    return not config.get(config_key, False)
+    default = config_key == "includeThinking"
+    return not config.get(config_key, default)
 
 
 def _state_vscdb_path(ide_id):
@@ -193,13 +194,14 @@ def _post_payload(config, payload, log_path):
 
     url = "http://{0}:{1}{2}".format(host, port, endpoint)
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    timeout = int(config.get("postTimeoutSeconds") or 30)
     req = urllib.request.Request(
         url,
         data=body,
         headers={"Content-Type": "application/json; charset=utf-8"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=5) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         _log(log_path, "POST {0} -> HTTP {1}".format(url, resp.status))
 
 

@@ -51,7 +51,7 @@
         },
         "cursorChatLogger.includeThinking": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "是否同时转发 Agent 思考过程 (afterAgentThought)"
         }
       }
